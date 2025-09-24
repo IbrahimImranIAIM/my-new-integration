@@ -58,6 +58,25 @@ export default new IntegrationDefinition({
           provider: z.string()
         })
       }
+    },
+    parseAndConvert: {
+      title: 'Parse and Convert',
+      description: 'Parse a user message like "20 usd to eur" and convert it',
+      input: {
+        schema: z.object({
+          message: z.string().min(1, 'message is required')
+        })
+      },
+      output: {
+        schema: z.object({
+          amount: z.number(),
+          rate: z.number(),
+          converted: z.number(),
+          provider: z.string(),
+          from: z.string(),
+          to: z.string()
+        })
+      }
     }
   }
 })

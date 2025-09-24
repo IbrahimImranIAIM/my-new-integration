@@ -44,6 +44,23 @@ function buildRateUrl(baseUrl: string, apiKey: string | undefined, baseCurrency:
 	}
 }
 
+function parseMessage(message: string) {
+	const text = (message || '').trim()
+	// Positional groups: 1=amount, 2=from?, 3=to
+	const pattern = /(\d+(?:[.,]\d+)?)\s*([A-Za-z]{3})?\s*(?:to|in|->)?\s*([A-Za-z]{3})/i
+	const match = pattern.exec(text)
+	if (!match) return null
+	const amountRaw = match[1]
+	const fromRaw = match[2] || ''
+	const toRaw = match[3]
+	if (!amountRaw || !toRaw) return null
+	return {
+		amount: Number(String(amountRaw).replace(',', '.')),
+		from: fromRaw,
+		to: toRaw
+	}
+}
+
 export default new bp.Integration({
 	register: async ({ ctx }: any) => {
 		const baseUrl = ctx.configuration.apiBaseUrl?.trim()
@@ -62,7 +79,7 @@ export default new bp.Integration({
 	unregister: async () => {
 		// Nothing to tear down for a simple HTTP API
 	},
-	actions: {
+	actions: ({
 		getRate: async ({ ctx, input }: any) => {
 			const from = normalizeCurrency(input.from)
 			const to = normalizeCurrency(input.to)
@@ -91,8 +108,29 @@ export default new bp.Integration({
 			}
 			const converted = amount * rate
 			return { amount, rate, converted, provider }
+		},
+		parseAndConvert: async ({ ctx, input }: any) => {
+			const parsed = parseMessage(String(input.message || ''))
+			if (!parsed) {
+				throw new sdk.RuntimeError('Could not parse message. Try e.g., "120 USD to EUR"')
+			}
+			const amount = Number(parsed.amount)
+			if (!Number.isFinite(amount) || amount < 0) {
+				throw new sdk.RuntimeError('Amount must be a non-negative number')
+			}
+			const from = normalizeCurrency(parsed.from || undefined, ctx.configuration.defaultBase)
+			const to = normalizeCurrency(parsed.to)
+
+			const { url, headers, provider, parser } = buildRateUrl(ctx.configuration.apiBaseUrl, ctx.configuration.apiKey, from, to)
+			const json = await fetchJson(url, headers)
+			const rate = parser(json)
+			if (typeof rate !== 'number') {
+				throw new sdk.RuntimeError('Could not parse rate from provider response')
+			}
+			const converted = amount * rate
+			return { amount, rate, converted, provider, from, to }
 		}
-	},
+	}) as any,
 	channels: {},
 	handler: async () => {}
 })
