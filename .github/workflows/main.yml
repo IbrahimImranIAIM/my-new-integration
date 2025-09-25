@@ -32,7 +32,7 @@ jobs:
         run: npm i -g @botpress/cli
 
       - name: Deploy Integration
-        run: bp integrations deploy --workspace "$BP_WORKSPACE_ID" --token "$BP_TOKEN"
+        run: bp deploy --workspace "$BP_WORKSPACE_ID" --token "$BP_TOKEN"
 
       - name: Import Bot (if export file exists)
         run: |
