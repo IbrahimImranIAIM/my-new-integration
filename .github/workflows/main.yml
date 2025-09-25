@@ -31,6 +31,9 @@ jobs:
       - name: Install Botpress CLI
         run: npm i -g @botpress/cli
 
+      - name: Login to Botpress
+        run: bp login --token "$BP_TOKEN" --workspaceId "$BP_WORKSPACE_ID" -y
+
       - name: Deploy Integration
         run: bp deploy
 
