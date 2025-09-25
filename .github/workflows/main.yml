@@ -1,0 +1,48 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    env:
+      # Inline IDs per your preference
+      BP_WORKSPACE_ID: "wkspace_01K5S2SMCHM6WYBSX3MW9ZBWFJ"
+      BP_BOT_ID: "e98d452e-abb8-46e8-a2c4-40b03e889172"
+      BP_TOKEN: ${{ secrets.BOTPRESS_ACCESS_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Type check
+        run: npm run check:type
+
+      - name: Install Botpress CLI
+        run: npm i -g @botpress/cli
+
+      - name: Deploy Integration
+        run: bp integrations deploy --workspace "$BP_WORKSPACE_ID" --token "$BP_TOKEN"
+
+      - name: Import Bot (if export file exists)
+        run: |
+          if [ -f "./bot/export/bot.json" ]; then
+            echo "bot/export/bot.json found. Importing bot..."
+            bp bots import \
+              --workspace "$BP_WORKSPACE_ID" \
+              --bot "$BP_BOT_ID" \
+              --token "$BP_TOKEN" \
+              --file ./bot/export/bot.json
+          else
+            echo "No bot/export/bot.json found. Skipping bot import."
+          fi
