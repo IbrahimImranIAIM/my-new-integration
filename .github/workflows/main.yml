@@ -41,11 +41,12 @@ jobs:
         run: |
           if [ -f "./bot/export/bot.json" ]; then
             echo "bot/export/bot.json found. Importing bot..."
-            bp bots import \
-              --workspace "$BP_WORKSPACE_ID" \
-              --bot "$BP_BOT_ID" \
+            bp import \
+              --workspaceId "$BP_WORKSPACE_ID" \
+              --botId "$BP_BOT_ID" \
               --token "$BP_TOKEN" \
-              --file ./bot/export/bot.json
+              --file ./bot/export/bot.json \
+              -y
           else
             echo "No bot/export/bot.json found. Skipping bot import."
           fi
